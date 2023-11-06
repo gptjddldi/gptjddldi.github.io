@@ -5,6 +5,4 @@ theme: 'PaperMod'
 
 enableRobotsTXT: true
 
-services:
-  googleAnalytics:
-    googleAnalytics: G-HH9Y7JQXT7
+googleAnalytics: G-HH9Y7JQXT7
