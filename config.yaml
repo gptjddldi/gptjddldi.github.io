@@ -6,3 +6,7 @@ theme: 'PaperMod'
 enableRobotsTXT: true
 
 googleAnalytics: G-HH9Y7JQXT7
+params:
+  analytics:
+      google:
+        SiteVerificationTag: RZ17MSRZ2G
