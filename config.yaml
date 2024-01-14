@@ -16,3 +16,24 @@ params:
   homeInfoParams:
       Title: gptjdlddi
       Content: 🏄‍♂️
+  socialIcons:
+    - name: github
+      url: 'https://github.com/gptjddldi'
+  comments: true
+  ShowPostNavLinks: true
+  ShowBreadCrumbs: true
+  ShowCodeCopyButtons: true
+  ShowRssButtonInSectionTermList: true
+  UseHugoToc: true
+
+menu:
+  main:
+    - identifier: archives
+      name: Archives
+      url: /archives
+      weight: 10
+
+taxonomies:
+  category: categories
+  series: series
+  tag: tags
