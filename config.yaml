@@ -6,3 +6,13 @@ theme: 'PaperMod'
 enableRobotsTXT: true
 
 googleAnalytics: G-HH9Y7JQXT7
+
+params:
+
+
+params:
+  defaultTheme: 'dark'
+  ShowToc: true
+  homeInfoParams:
+      Title: gptjdlddi
+      Content: 🏄‍♂️
