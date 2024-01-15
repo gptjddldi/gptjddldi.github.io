@@ -1,5 +1,5 @@
 ---
-title: "스프링 웹플럭스 세션 인증 (wip)"
+title: "코틀린 스프링 웹플럭스 세션 인증"
 date: 2024-01-13T18:12:02+09:00
 draft: false
 cover:
@@ -114,7 +114,7 @@ Authentication Manager 는 Authentication 객체에 있는 id, password 값과 �
 - ServerAuthenticationConverter
 - AuthenticationSuccessHandler
 ```
-
+---
 
 먼저 spring security 설정을 모아둘 config 클래스를 생성한다.
 
@@ -154,26 +154,6 @@ class SecurityConfig {
     }
 
     @Bean
-    fun sessionLoginFilter(
-        sessionAuthenticationManager: ReactiveAuthenticationManager,
-        serverSecurityContextRepository: ServerSecurityContextRepository,
-        customConverter: ServerAuthenticationConverter
-    ) : AuthenticationWebFilter {
-        val filter = AuthenticationWebFilter(sessionAuthenticationManager)
-
-        filter.setSecurityContextRepository(serverSecurityContextRepository)
-        filter.setRequiresAuthenticationMatcher { ServerWebExchangeMatchers.pathMatchers(HttpMethod.POST, "/login").matches(it) }
-        filter.setServerAuthenticationConverter(customConverter)
-        filter.setAuthenticationSuccessHandler { webFilterExchange, authentication ->
-            webFilterExchange.exchange.response.statusCode = HttpStatus.OK
-            val a = webFilterExchange.exchange.response.bufferFactory().wrap("hey, ${authentication.name}".toByteArray())
-            webFilterExchange.exchange.response.writeWith(Mono.just(a))
-        }
-
-        return filter
-    }
-
-    @Bean
     fun sessionAuthenticationManager(
         customUserDetailsService: CustomUserDetailsService,
         passwordEncoder: PasswordEncoder
@@ -187,18 +167,100 @@ class SecurityConfig {
 ```
 securityWebFilterChain 에서 
 ```.pathMatchers("/login").permitAll()``` 와 ```.addFilterAt(sessionLoginFilter, SecurityWebFiltersOrder.AUTHENTICATION)``` 이 두 부분에 주목하자.
-```/login``` path 로 오는 요청들은 인증을 거치지 않는다는 의미이다. 회원가입 페이지나, 인증 없이 접근할 수 있는 페이지의 path 를 등록하면 되겠다. 이번 실습에서는 로그인 테스트만 하기 때문에 ```/login``` path 만 허용하고 나머지 요청은 인증이 필요하도록 한다.  
+```/login``` path 로 오는 요청은 인증을 거치지 않는다는 의미이다. 회원가입 페이지, 로그인 페이지, 인증 없이 접근할 수 있는 페이지의 path 를 등록하면 되겠다. 이번 실습에서는 로그인 테스트만 하기 때문에 ```/login``` path 만 허용하고 나머지 요청은 인증이 필요하도록 한다.  
 그 다음은 AUTHENTICATION 단계에 sessionLoginFilter 필터를 추가한다는 의미이다. Spring Security 는 여러 단계의 Filter 로 구성되어 있는데, 특정 단계에 우리가 만든 Custom Filter 를 삽입함으로써 다양한 케이스의 환경을 다룰 수 있다. 
 
-sessionLoginFilter 에서 인증과 관련된 로직들을 설정한다. Authentication Manager 로 sessionAuthenticationManager
+---
+``` kotlin
+// SecurityConfig
 
+@Bean
+fun sessionLoginFilter(
+    sessionAuthenticationManager: ReactiveAuthenticationManager,
+    serverSecurityContextRepository: ServerSecurityContextRepository,
+    customConverter: ServerAuthenticationConverter
+) : AuthenticationWebFilter {
+    val filter = AuthenticationWebFilter(sessionAuthenticationManager)
 
+    filter.setSecurityContextRepository(serverSecurityContextRepository) // 1
+    filter.setRequiresAuthenticationMatcher { ServerWebExchangeMatchers.pathMatchers(HttpMethod.POST, "/login").matches(it) } // 2
+    filter.setServerAuthenticationConverter(customConverter) // 3
+    filter.setAuthenticationSuccessHandler { webFilterExchange, authentication -> // 4
+        webFilterExchange.exchange.response.statusCode = HttpStatus.OK
+        val a = webFilterExchange.exchange.response.bufferFactory().wrap("hey, ${authentication.name}".toByteArray())
+        webFilterExchange.exchange.response.writeWith(Mono.just(a))
+    }
 
-### 주요 컴포넌트
+    return filter
+}
+```
+sessionLoginFilter 에서 인증과 관련된 로직들을 설정한다. 
+1. Filter 를 만들 때 Authentication Managr 로 sessionAuthenticationManager 를 전달한다. 인증 프로세스 정리의 3번에서 ```Authentication Manager 는 전달받은 Authentication 객체의 정보와 실제 사용자의 정보 비교해 인증 여부를 결정한다.``` 라고 언급했다. 실제 사용자의 정보를 가져올 때 customUserDetailsService 를 통해 가져온다.
+2. "/login" POST 요청이 오는 경우에 인증을 수행하도록 한다.
+3. Authenticaion 요청에서 인증과 관련된 정보를 추출하여 Authention 객체로 변환하는데, 우리는 name 과 password 를 추출해 객체로 변환시키는 CustomConverter 를 만들어 사용할 것이다.
+4. 인증에 성공했을 때 처리다. 200 OK 응답과 요청된 name 파라미터를 전달할 것이다.
+5. 인증에 실패했을 경우도 위와 같이 ```filter.setAuthenticationFailureHandler``` 를 설정하면 된다. 실습에서는 401 Unauthorized 로 충분하기 충분하기 때문에 커스텀하지 않고 기본 핸들러를 사용한다.
 
+---
+``` kotlin
+@Service
+class CustomUserDetailsService(
+    private val userRepository: UserRepository,
+) : ReactiveUserDetailsService {
+    override fun findByUsername(username: String): Mono<UserDetails?> {
+        return userRepository
+            .findByName(username)
+            .map {u ->
+                User.withUserDetails(CustomUserDetails(u!!)).build()
+            }
+            .switchIfEmpty(Mono.empty())
+    }
+}
+```
+``` java
+// MapReactiveUserDetailsService
+@Override
+public Mono<UserDetails> findByUsername(String username) {
+    String key = getKey(username);
+    UserDetails result = this.users.get(key);
+    return (result != null) ? Mono.just(User.withUserDetails(result).build()) : Mono.empty();
+}
+```
+CustomUserDetailsService 는 findByUsername 메소드를 구현해야 한다. 이 메소드는 UserDetails 타입을 리턴해야 한다.
+```MapReactiveUserDetailsService``` 를 참고하여 구현했다.
+
+---
+``` kotlin
+@Component
+class CustomConverter: ServerAuthenticationConverter {
+    private val decoder = Jackson2JsonDecoder()
+
+    override fun convert(exchange: ServerWebExchange): Mono<Authentication> {
+        val elementType: ResolvableType = ResolvableType.forClass(LoginData::class.java)
+
+        return exchange.request.body
+            .next()
+            .flatMap { buffer ->
+                Mono.justOrEmpty(decoder.decode(buffer, elementType, null, null)).cast(LoginData::class.java) // 1
+            }
+            .switchIfEmpty(Mono.error(UsernameNotFoundException("username not found")))
+            .map {
+                UsernamePasswordAuthenticationToken(it.name, it.password) // 2
+            }
+    }
+}
+private data class LoginData (val name: String, val password: String)
+```
+CustomConverter 는 convert 메소드를 구현한다.  
+요청(Exchange)으로부터 인증 정보 name, password 를 추출해서 (1)  
+Authentication 객체를 리턴한다. (2)
+
+## 결과
+{{< figure src="images/result.png" caption="정상적인 인증 요청 결과">}}
+
+"/login" 라우트로 POST 요청을 보냈을 때 response header 에 200ok 와 세션 정보가 담긴 Set-cookie 를 확인할 수 있고 response body 에서 usernname 을 확인할 수 있다.
 
 ## 나아가기
-지금까지 세션 인증을 구현해봤다. 하지만 세션 인증은 로그인 정보를 서버에 저장하기 때문에 Stateless 환경에서 사용하기 어렵다.  
-Stateless 환경에서는 JWT 를 사용하는 걸 고려해 볼 수 있다.  
+지금까지 세션 인증을 살펴봤다. 하지만 세션 인증은 로그인 정보를 서버에 저장하기 때문에 Stateless 환경에서 사용하기 어렵다. Stateless 환경에서는 JWT 를 사용하는 걸 고려해 볼 수 있다.  
 그렇다면 세션 인증에서 JWT 인증으로 변경하려면 어느 부분을 수정해야 할까?  
 
