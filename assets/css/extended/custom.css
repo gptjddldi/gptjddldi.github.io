@@ -1,0 +1,7 @@
+/* 코드 블록에서 좌우 스크롤 없애기 */
+pre {
+    white-space: pre-wrap; /* 코드 블록 내에서 줄바꿈을 허용 */
+    word-wrap: break-word; /* 긴 단어가 있는 경우에도 줄바꿈을 허용 */
+    overflow-x: auto; /* 필요에 따라 수평 스크롤바를 표시 */
+  }
+  

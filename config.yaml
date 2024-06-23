@@ -7,8 +7,6 @@ enableRobotsTXT: true
 
 googleAnalytics: G-HH9Y7JQXT7
 
-params:
-
 
 params:
   defaultTheme: 'light'
@@ -37,3 +35,4 @@ taxonomies:
   category: categories
   series: series
   tag: tags
+
