@@ -1,9 +1,6 @@
 ---
 title: "코틀린 스프링 웹플럭스 세션 인증"
 date: 2024-01-13T18:12:02+09:00
-draft: false
-cover:
-    image: "images/image-2.png"
 ---
 
 Spring Security 개발을 처음 시작하면서 많은 블로그의 소스 코드를 참고했다. 스프링에 처음 입문하고, 블로그 마다 구현 방식이 제각각이고, 최신 Spring Securty 6 버전을 사용한 코드를 찾기 어려워서 적용에 어려움이 많았다.

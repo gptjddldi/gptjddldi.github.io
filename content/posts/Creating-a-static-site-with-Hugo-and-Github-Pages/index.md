@@ -1,8 +1,6 @@
 ---
 title: "Hugo 와 Github Pages 로 블로그 만들기"
 date: 2023-11-05T17:18:10+09:00
-cover:
-    image: "images/hugo-logo-wide.svg"
 ---
 
 ### 머릿말
