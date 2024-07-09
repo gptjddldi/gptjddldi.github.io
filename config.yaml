@@ -25,7 +25,7 @@ params:
   UseHugoToc: true
   analytics:
     google:
-      SiteVerification: 'qEWr-0TVYw3dT15GiETFmAPsNbhSxnk-xya_mHdUIp4'
+      SiteVerificationTag: 'qEWr-0TVYw3dT15GiETFmAPsNbhSxnk-xya_mHdUIp4'
 
 menu:
   main:
