@@ -161,3 +161,75 @@ func main() {
 
 #### 결론
 다른 오픈소스 코드를 볼 때 interface 를 선언만 하고 실제로 구현하는 코드가 없어서 이상하다고 생각했는데, 이번 학습으로 좀 더 잘 이해할 수 있을 것 같다.
+
+
+---
+
+#### 2025.02.08 추가
+
+Leetcode에 올라온 오늘의 daily challenge 문제를 heap을 사용해 풀 수 있어서 가져왔다. \
+[(design-a-number-container-system)](https://leetcode.com/problems/design-a-number-container-system)
+
+- key: index / value: number
+- key: number / value: sorted list of index
+
+두 개의 hashmap을 사용해서 문제를 해결할 수 있다. go 언어는 sorted set 자료구조를 제공하지 않기 때문에 직접 구현해야 한다. \
+아래는 heap을 이용해 푼 코드이다.
+
+```go
+import "container/heap"
+
+type minHeap []int
+
+func (h minHeap) Len() int           { return len(h) }
+func (h minHeap) Less(i, j int) bool { return h[i] < h[j] }
+func (h minHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+
+func (h *minHeap) Push(x interface{}) {
+	*h = append(*h, x.(int))
+}
+
+func (h *minHeap) Pop() interface{} {
+	old := *h
+	n := len(old)
+	x := old[n-1]
+	*h = old[0 : n-1]
+	return x
+}
+
+type NumberContainers struct {
+	mp1 map[int]int      // index => number
+	mp2 map[int]*minHeap // number => index
+}
+
+func Constructor() NumberContainers {
+	return NumberContainers{
+		mp1: make(map[int]int),
+		mp2: make(map[int]*minHeap),
+	}
+}
+
+// mp1[index] 에 number 추가
+// mp2[number] 에 index 추가 (정렬된 상태)
+func (nc *NumberContainers) Change(index int, number int) {
+	nc.mp1[index] = number
+	if nc.mp2[number] == nil {
+		nc.mp2[number] = &minHeap{}
+	}
+	heap.Push(nc.mp2[number], index)
+}
+
+func (nc *NumberContainers) Find(number int) int {
+	if nc.mp2[number] == nil {
+		return -1
+	}
+	for nc.mp2[number].Len() > 0 {
+		cur := (*nc.mp2[number])[0]
+		if nc.mp1[cur] == number {
+			return cur
+		}
+		heap.Pop(nc.mp2[number])
+	}
+	return -1
+}
+```
